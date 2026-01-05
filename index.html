@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>पौराणिक कथा | DivineMurti</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root { --saffron: #FF9933; --gold: #D4AF37; --deep-blue: #1a2a6c; --parchment: #fdfaf0; }
+        body { margin: 0; font-family: 'Lora', serif; background: #1a1a1a; min-height: 100vh; color: #333; overflow-x: hidden; }
+        
+        /* Navigation */
+        .header-nav { position: fixed; top: 0; right: 0; padding: 20px; z-index: 1000; }
+        .menu-icon { font-size: 2.2rem; color: #fff; cursor: pointer; }
+        .side-drawer { position: fixed; top: 0; right: -300px; width: 280px; height: 100%; background: var(--deep-blue); color: white; transition: 0.4s; z-index: 1001; padding-top: 60px; }
+        .side-drawer.open { right: 0; }
+        .menu-links { display: flex; flex-direction: column; padding: 20px; }
+        .menu-links a { font-family: 'Cinzel'; color: #fff; text-decoration: none; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1000; }
+        .overlay.active { display: block; }
+
+        /* Story Card */
+        .story-wrapper { max-width: 850px; width: 92%; margin: 80px auto; }
+        .paper-card { 
+            background: var(--parchment); padding: 50px 40px; border-radius: 4px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.6); border: 1px solid var(--gold);
+            position: relative; line-height: 1.8; min-height: 450px;
+        }
+
+        .lang-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: var(--deep-blue); color: white; border: none;
+            padding: 8px 16px; border-radius: 20px; cursor: pointer;
+            font-family: 'Cinzel'; font-size: 0.7rem; z-index: 10;
+        }
+
+        .story-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--saffron); padding-bottom: 15px; }
+        .category { font-family: 'Cinzel'; font-size: 0.8rem; color: var(--gold); letter-spacing: 2px; }
+        .title { font-family: 'Cinzel'; font-size: 2rem; color: var(--deep-blue); margin: 10px 0; }
+        
+        .story-body { font-size: 1.2rem; text-align: justify; white-space: pre-wrap; }
+        .moral-highlight { 
+            margin-top: 40px; padding: 20px; background: rgba(255, 153, 51, 0.1); 
+            border-left: 5px solid var(--saffron); font-style: italic;
+        }
+
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--saffron); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; margin-right: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="header-nav"><div class="menu-icon" onclick="toggleMenu()">☰</div></div>
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="side-drawer" id="sideDrawer">
+        <div style="padding: 20px; cursor:pointer;" onclick="toggleMenu()">✕ Close</div>
+        <div class="menu-links">
+            <a href="#">Home</a>
+            <a href="#" style="color: var(--saffron);">Today's Story</a>
+        </div>
+    </div>
+
+    <div class="story-wrapper">
+        <div class="paper-card">
+            <button class="lang-btn" onclick="switchLang()" id="langToggle">English Mode</button>
+            <header class="story-header">
+                <div class="category" id="cat-label">प्रेरणादायक कथा</div>
+                <h1 class="title" id="story-title">लोड हो रहा है...</h1>
+            </header>
+            <div class="story-body" id="main-story">कृपया प्रतीक्षा करें...</div>
+            <div class="moral-highlight" id="moral-text"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentLang = 'hi';
+        let activeStory = {
+            title: "The Golden Egg",
+            body: "A farmer had a goose that laid a golden egg every day. Greed took over him, and he killed the goose to get all eggs at once, but found nothing inside.",
+            moral: "Greed destroys everything."
+        };
+
+        const REPO_URL = "https://raw.githubusercontent.com/finesse/short-stories/master/stories.json";
+
+        // 1. Google Translation Logic
+        async function translate(text, target) {
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+                const json = await res.json();
+                return json[0].map(s => s[0]).join("");
+            } catch (e) { return text; }
+        }
+
+        // 2. Fetch from GitHub
+        async function init() {
+            try {
+                // We add a cache-buster to prevent the browser from blocking the "old" file
+                const response = await fetch(REPO_URL + "?v=" + Math.random());
+                if (!response.ok) throw new Error("CORS or Network Error");
+                const data = await response.json();
+                const day = new Date().getDate() % data.length;
+                activeStory = {
+                    title: data[day].title,
+                    body: data[day].story,
+                    moral: "Goodness is the best policy."
+                };
+            } catch (err) {
+                console.log("Using Fallback Story because GitHub is blocked locally.");
+            }
+            render();
+        }
+
+        // 3. Display Logic
+        async function render() {
+            const titleEl = document.getElementById('story-title');
+            const bodyEl = document.getElementById('main-story');
+            const moralEl = document.getElementById('moral-text');
+
+            if (currentLang === 'hi') {
+                titleEl.innerHTML = '<span class="loader"></span>अनुवाद...';
+                const [t, b, m] = await Promise.all([
+                    translate(activeStory.title, 'hi'),
+                    translate(activeStory.body, 'hi'),
+                    translate(activeStory.moral, 'hi')
+                ]);
+                titleEl.innerText = t;
+                bodyEl.innerText = b;
+                moralEl.innerHTML = `<b>शिक्षा:</b> ${m}`;
+                document.getElementById('langToggle').innerText = "English Mode";
+            } else {
+                titleEl.innerText = activeStory.title;
+                bodyEl.innerText = activeStory.body;
+                moralEl.innerHTML = `<b>Moral:</b> ${activeStory.moral}`;
+                document.getElementById('langToggle').innerText = "हिंदी मोड";
+            }
+        }
+
+        function switchLang() {
+            currentLang = (currentLang === 'hi') ? 'en' : 'hi';
+            render();
+        }
+
+        function toggleMenu() {
+            document.getElementById('sideDrawer').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        init();
+    </script>
+</body>
+</html>
