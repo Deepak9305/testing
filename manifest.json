@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AI Image Detector",
   "version": "1.0",
-  "description": "Checks if an image is AI-generated using Hugging Face.",
+  "description": "Right-click images to check if they are likely AI-generated",
   "permissions": [
     "contextMenus",
     "storage",
@@ -16,6 +16,7 @@
   },
   "options_page": "options.html",
   "icons": {
-    "48": "icon.png"
+    "48": "icon48.png",
+    "128": "icon128.png"
   }
 }
