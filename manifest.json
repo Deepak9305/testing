@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "AI Image Detector",
+  "version": "1.0",
+  "description": "Checks if an image is AI-generated using Hugging Face.",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://api-inference.huggingface.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "48": "icon.png"
+  }
+}
